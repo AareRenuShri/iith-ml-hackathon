@@ -131,3 +131,27 @@ acl, acl:relcl, advcl, advcl:relcl, advmod, amod, appos, aux, aux:pass, case, cc
 - Punctuation is the most frequent relation.
 - Some relations have very few training examples.
 - Root relation count matches the number of training sentences.
+
+
+PHASE 2 & 3: MODEL TRAINING AND ITERATION
+-----------------------------------------------
+1. BASELINE MODEL (Phase 2):
+- Model: Logistic Regression (L-BFGS, max_iter=2000)
+- Features: lowercase, word_length, is_uppercase, is_digit, prefix (3 chars), suffix (3 chars)
+- Feature dimensions: 23,455
+- Training accuracy: 0.7146
+- Validation accuracy: 0.6499
+- Majority baseline: 0.1151
+
+2. IMPROVED MODEL (Phase 3):
+- Additional Features: is_title, is_lower, shape (ALLCAPS/lower/mixed), len_bucket (1, 2-3, 4-5, 6+)
+- Feature dimensions: 23,464
+- Training accuracy: 0.7150
+- Validation accuracy: 0.6506
+- Iterations: 1483
+
+3. SUBMISSIONS GENERATED:
+- submission_phase3_rel.csv: Relation predictions (25,094 rows)
+- submission_phase3_head_rel.csv: Head + numeric relation predictions (25,094 rows)
+- submission_phase3_named.csv: Head + textual relation predictions (25,094 rows, ready for Kaggle evaluation)
+- Total test predictions shifted: 764 (3.04%) compared to Phase 2 baseline.

@@ -21,19 +21,42 @@ print("Testing data:", test.shape)
 
 
 # --------------------------------------------------
-# 2. Feature extraction
+# 2. Feature extraction (Phase 3: Rich Features)
 # --------------------------------------------------
 
 def extract_features(word):
     word = str(word)
+    length = len(word)
+
+    # Length bucket: 1, 2-3, 4-5, 6+
+    if length <= 1:
+        len_bucket = "1"
+    elif length <= 3:
+        len_bucket = "2-3"
+    elif length <= 5:
+        len_bucket = "4-5"
+    else:
+        len_bucket = "6+"
+
+    # Shape: ALLCAPS if all uppercase, lower if all lowercase, mixed otherwise
+    if word.isupper():
+        shape = "ALLCAPS"
+    elif word.islower():
+        shape = "lower"
+    else:
+        shape = "mixed"
 
     return {
         "lowercase": word.lower(),
-        "word_length": len(word),
+        "word_length": length,
         "is_uppercase": word.isupper(),
         "is_digit": word.isdigit(),
         "prefix": word[:3],
-        "suffix": word[-3:]
+        "suffix": word[-3:],
+        "is_title": word.istitle(),
+        "is_lower": word.islower(),
+        "shape": shape,
+        "len_bucket": len_bucket
     }
 
 
@@ -85,7 +108,8 @@ print("Numerical features:", X_train_vec.shape[1])
 
 model = LogisticRegression(
     max_iter=2000,
-    solver="lbfgs"
+    solver="lbfgs",
+    random_state=42
 )
 
 print("\nTraining Logistic Regression model...")
@@ -135,9 +159,10 @@ submission_rel = pd.DataFrame({
     "Label": test_predictions
 })
 
+submission_rel.to_csv("submission_phase3_rel.csv", index=False)
 submission_rel.to_csv("submission_rel_baseline.csv", index=False)
 
-print("\nRelation-only submission saved.")
+print("\nRelation-only submission saved (submission_phase3_rel.csv & submission_rel_baseline.csv).")
 
 
 # --------------------------------------------------
@@ -160,9 +185,10 @@ head_predictions = test["token"].apply(predict_head)
 
 
 # --------------------------------------------------
-# 10. Generate head + relation submission
+# 10. Generate head + relation submissions
 # --------------------------------------------------
 
+# Numeric relation index format (Phase 2 & Phase 3 convention)
 combined_labels = [
     f"{head}|{relation}"
     for head, relation in zip(head_predictions, test_predictions)
@@ -173,9 +199,24 @@ submission_head_rel = pd.DataFrame({
     "Label": combined_labels
 })
 
+submission_head_rel.to_csv("submission_phase3_head_rel.csv", index=False)
 submission_head_rel.to_csv("submission_head_rel.csv", index=False)
+print("Head + numeric relation submission saved (submission_phase3_head_rel.csv & submission_head_rel.csv).")
 
-print("Head + relation submission saved.")
+# Decoded string relation format (Kaggle evaluation convention for Phase 4)
+decoded_relations = label_encoder.inverse_transform(test_predictions)
+combined_named_labels = [
+    f"{head}|{relation_name}"
+    for head, relation_name in zip(head_predictions, decoded_relations)
+]
+
+submission_phase3_named = pd.DataFrame({
+    "ID": test["ID"],
+    "Label": combined_named_labels
+})
+
+submission_phase3_named.to_csv("submission_phase3_named.csv", index=False)
+print("Head + textual relation submission saved (submission_phase3_named.csv).")
 
 
 # --------------------------------------------------
@@ -183,8 +224,9 @@ print("Head + relation submission saved.")
 # --------------------------------------------------
 
 for filename, submission in [
-    ("submission_rel_baseline.csv", submission_rel),
-    ("submission_head_rel.csv", submission_head_rel)
+    ("submission_phase3_rel.csv", submission_rel),
+    ("submission_phase3_head_rel.csv", submission_head_rel),
+    ("submission_phase3_named.csv", submission_phase3_named)
 ]:
     print(f"\n{filename}")
     print("Rows:", len(submission))
@@ -194,7 +236,10 @@ for filename, submission in [
 print("\nHead ID distribution:")
 print(head_predictions.value_counts())
 
-print("\nFirst 5 combined predictions:")
+print("\nFirst 5 combined numeric predictions (submission_phase3_head_rel.csv):")
 print(submission_head_rel.head())
 
-print("\nPhase 2 model execution completed!")
+print("\nFirst 5 combined textual predictions (submission_phase3_named.csv):")
+print(submission_phase3_named.head())
+
+print(f"\nPhase 3 model execution completed! Validation accuracy: {validation_accuracy:.4f}")
